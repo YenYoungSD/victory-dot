@@ -22,11 +22,17 @@
       body.done[data-theme="black"]{ background:#000; }
       body.done[data-theme="night"]{ background:#04060f; }
 
-      /* ---------- 顶部品牌条 ---------- */
+      /* ---------- 顶部品牌条（透明横额） ----------
+         悬浮于舞台之上：背景全透明、不占版面高度，3D 舞台因此贯通
+         整个竖屏——升降桌放大 / 上移时可进入横额区域，不再被一条
+         实底栏挡住上部。文字颜色走 --ink / --sub 主题变量，三种
+         主题下自动翻面保持可读；重播按钮保留半透明底托住触控辨识。 */
       #brand{
-        flex:none; display:flex; align-items:flex-start; justify-content:space-between; gap:12px;
+        position:fixed; top:0; left:0; right:0; z-index:20;
+        display:flex; align-items:flex-start; justify-content:space-between; gap:12px;
         padding:calc(12px + env(safe-area-inset-top)) 18px 4px;
-        opacity:0; transition:opacity .9s ease .1s; pointer-events:none; position:relative; z-index:20;
+        background:transparent;
+        opacity:0; transition:opacity .9s ease .1s; pointer-events:none;
       }
       body.done #brand{ opacity:1; }
       #brand .b1{ font-size:10px; letter-spacing:.32em; color:var(--sub); white-space:nowrap; }
@@ -1215,6 +1221,15 @@ function onModelLoaded(gltf){
   snapshot.forEach(function(o){ if (!o.isMesh && o.children.length === 0) frameRoots.add(o); });
   function isTopFrame(o){
     const nm = o.name || '';
+    /* 例外：'MonitorArm Caps Cover'（支架底座盖板装配：盖板 + 基板 +
+       一圈 M3 螺丝）虽以 MonitorArm 开头，但在源模型里是 'MonitorArm
+       Caps' 的子装配——自身变换只是相对父级的局部偏移（近单位阵）。
+       若按名把它当顶级帧留在根层，整组零件会脱离支架、按单位阵掉到
+       世界原点（桌面下方近地面处），即用户所见「底座脱模、出现在
+       桌底」。V1 模型没有这个命名帧、同批零件直接走夹具碎件链才没
+       出问题。这里按普通子帧处理：挂到当前顶级帧（MonitorArm Caps）
+       之下，变换链与源模型装配一致，随支架整体升降 / 爆炸。 */
+    if (nm === 'MonitorArm_Caps_Cover') return false;
     return origIdx.get(o) < 30 || nm.indexOf('MonitorArm') >= 0 || nm.indexOf('MonitorArn') >= 0 ||
            nm.indexOf('DesktopSocket') >= 0 || nm.indexOf('Power_Strip_Plug') >= 0;
   }
